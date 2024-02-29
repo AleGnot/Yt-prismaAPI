@@ -8,4 +8,4 @@ app.use(express.json());
 app.use("/user", userRoutes);
 app.use("/videos", videoRoutes);
 
-app.listen(5000);
+app.listen(process.env.PORT);
