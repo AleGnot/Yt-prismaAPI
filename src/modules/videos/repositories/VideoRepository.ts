@@ -1,6 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { hash, compare } from "bcrypt";
-import { sign } from "jsonwebtoken";
 import { Request, Response } from "express";
 
 const prisma = new PrismaClient();

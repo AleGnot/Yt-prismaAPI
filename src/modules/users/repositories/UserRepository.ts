@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { hash, compare } from "bcrypt";
-import { sign } from "jsonwebtoken";
 import { Request, Response } from "express";
+import { decode, sign, verify } from "jsonwebtoken";
 
 const prisma = new PrismaClient();
 
@@ -26,11 +26,11 @@ class UserRepository {
       });
 
       response.status(200).json({ message: "Usuário criado com sucesso!" });
-
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Erro ao criar usuário", error);
       return response.status(500).json({ error: "Internal server error" });
+    } finally {
+      await prisma.$disconnect();
     }
   }
 
@@ -62,11 +62,47 @@ class UserRepository {
       response
         .status(200)
         .json({ message: "Login efetuado com sucesso", token: token });
-
-      await prisma.$disconnect();
     } catch (error) {
       console.error("Erro ao realizar o login", error);
       return response.status(500).json({ error: "Internal server error" });
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+
+  async getUser(request: Request, response: Response) {
+    const token = request.headers.authorization?.replace("Bearer ", "");
+    if (!token) {
+      return response
+        .status(401)
+        .json({ message: "Token de autorização não fornecido" });
+    }
+
+    try {
+      const decoded = decode(token) as {
+        id: string;
+        email: string;
+      } | null;
+      if (!decoded) {
+        return response.status(401).json({ message: "Token inválido" });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: {
+          email: decoded.email,
+        },
+      });
+
+      if (!user) {
+        return response.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      return response.status(200).json({ user });
+    } catch (error) {
+      console.error("Erro ao obter usuário", error);
+      return response.status(500).json({ error: "Internal server error" });
+    } finally {
+      await prisma.$disconnect();
     }
   }
 }
